@@ -1,5 +1,6 @@
 import '../../domain/entities/product.dart';
 import 'product_detail_page.dart';
+import 'package:flutter/material.dart';
 
 class ProductListPage extends StatefulWidget {
   const ProductListPage({super.key});
