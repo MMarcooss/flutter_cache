@@ -24,4 +24,17 @@ class ProductModel extends Product {
       images: List<String>.from(map['images'] as List<dynamic>),
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'category': category,
+      'price': price,
+      'rating': rating,
+      'thumbnail': thumbnail,
+      'images': images,
+    };
+  }
 }

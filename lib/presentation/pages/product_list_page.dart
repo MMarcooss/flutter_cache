@@ -1,6 +1,7 @@
 import '../../domain/entities/product.dart';
 import 'product_detail_page.dart';
 import 'package:flutter/material.dart';
+import '../../data/datasources/product_remote_datasource.dart';
 
 class ProductListPage extends StatefulWidget {
   const ProductListPage({super.key});
@@ -18,6 +19,27 @@ class _ProductListPageState extends State<ProductListPage> {
   void initState() {
     super.initState();
     loadProducts();
+  }
+
+  Future<void> loadProducts() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final datasource = ProductRemoteDatasource();
+      products = await datasource.fetchProducts();
+      setState(() {});
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Falha ao carregar produtos: $e';
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> openDetails(Product product) async {
