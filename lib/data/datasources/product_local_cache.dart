@@ -1,30 +1,38 @@
-import '../../domain/entities/product.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/product_model.dart';
 
 class ProductLocalCache {
-  List<Product>? _products;
+  static const String productsKey = 'cached_products';
+  static const String timestampKey = 'cached_products_time';
 
-  DateTime? _cachedAt;
+  final SharedPreferences prefs;
 
-  final Duration ttl = const Duration(minutes: 5);
+  ProductLocalCache(this.prefs);
 
-  List<Product>? getIfValid() {
-    if (_products == null || _cachedAt == null) return null;
+  Future<void> save(List<ProductModel> products) async {
+    final encoded = products.map((p) => jsonEncode(p.toMap())).toList();
 
-    final now = DateTime.now();
-
-    final isValid = now.difference(_cachedAt!) < ttl;
-
-    return isValid ? _products : null;
+    await prefs.setStringList(productsKey, encoded);
+    await prefs.setString(
+      timestampKey,
+      DateTime.now().toIso8601String(),
+    );
   }
 
-  void save(List<Product> products) {
-    _products = products;
-
-    _cachedAt = DateTime.now();
+  Future<List<ProductModel>> getProducts() async {
+    final saved = prefs.getStringList(productsKey) ?? [];
+    return saved.map((item) => ProductModel.fromMap(jsonDecode(item))).toList();
   }
 
-  void clear() {
-    _products = null;
-    _cachedAt = null;
+  DateTime? getCachedAt() {
+    final value = prefs.getString(timestampKey);
+    if (value == null) return null;
+    return DateTime.tryParse(value);
+  }
+
+  Future<void> clear() async {
+    await prefs.remove(productsKey);
+    await prefs.remove(timestampKey);
   }
 }

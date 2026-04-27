@@ -1,4 +1,5 @@
 import '../../domain/entities/product.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class ProductDetailPage extends StatelessWidget {
@@ -17,23 +18,24 @@ class ProductDetailPage extends StatelessWidget {
             SizedBox(
               height: 260,
               child: PageView.builder(
-                itemCount: product.images.length,
-                itemBuilder: (context, index) {
-                  return Image.network(
-                    product.images[index],
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
+                  itemCount: product.images.length,
+                  itemBuilder: (context, index) {
+                    return CachedNetworkImage(
+                      imageUrl: product.images[index],
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey.shade200,
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                      errorWidget: (context, url, error) => Container(
                         color: Colors.grey.shade300,
                         child: const Center(
                           child: Icon(Icons.broken_image, size: 48),
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
+                      ),
+                    );
+                  }),
             ),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -65,9 +67,6 @@ class ProductDetailPage extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Observação didática: ao voltar desta tela, a lista principal será recarregada por completo.',
-                  ),
                 ],
               ),
             ),

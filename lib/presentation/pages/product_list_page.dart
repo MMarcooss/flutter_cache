@@ -2,6 +2,12 @@ import '../../domain/entities/product.dart';
 import 'product_detail_page.dart';
 import 'package:flutter/material.dart';
 import '../../data/datasources/product_remote_datasource.dart';
+import '../../data/datasources/product_memory_cache.dart';
+import '../../data/datasources/product_local_cache.dart';
+import '../../data/repositories/product_repository_impl.dart';
+import '../../domain/repositories/product_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProductListPage extends StatefulWidget {
   const ProductListPage({super.key});
@@ -14,22 +20,35 @@ class _ProductListPageState extends State<ProductListPage> {
   bool isLoading = false;
   String? errorMessage;
   List<Product> products = [];
+  late ProductRepository _repository;
+  bool _repositoryReady = false;
 
   @override
   void initState() {
     super.initState();
-    loadProducts();
+    _initRepository();
+  }
+
+  Future<void> _initRepository() async {
+    final prefs = await SharedPreferences.getInstance();
+    _repository = ProductRepositoryImpl(
+      api: ProductRemoteDatasource(),
+      memoryCache: ProductMemoryCache(),
+      localCache: ProductLocalCache(prefs),
+    );
+    _repositoryReady = true;
+    await loadProducts();
   }
 
   Future<void> loadProducts() async {
+    if (!_repositoryReady) return;
     setState(() {
       isLoading = true;
       errorMessage = null;
     });
 
     try {
-      final datasource = ProductRemoteDatasource();
-      products = await datasource.fetchProducts();
+      products = await _repository.getProducts();
       setState(() {});
     } catch (e) {
       setState(() {
@@ -51,7 +70,6 @@ class _ProductListPageState extends State<ProductListPage> {
     // PROBLEMA INTENCIONAL:
     // Ao voltar da tela de detalhes, refaz a chamada remota inteira.
     // Isso piora latência, desperdiça rede e recria toda a experiência.
-    await loadProducts();
   }
 
   @override
@@ -100,22 +118,24 @@ class _ProductListPageState extends State<ProductListPage> {
                 contentPadding: const EdgeInsets.all(12),
                 leading: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    product.thumbnail,
+                  child: CachedNetworkImage(
+                    imageUrl: product.thumbnail,
                     width: 72,
                     height: 72,
                     fit: BoxFit.cover,
-                    // PROBLEMA INTENCIONAL:
-                    // Uso direto, sem cache explícito, sem placeholder elegante,
-                    // sem política mais robusta para imagens.
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 72,
-                        height: 72,
-                        color: Colors.grey.shade300,
-                        child: const Icon(Icons.broken_image),
-                      );
-                    },
+                    placeholder: (context, url) => Container(
+                      width: 72,
+                      height: 72,
+                      color: Colors.grey.shade200,
+                      child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2)),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      width: 72,
+                      height: 72,
+                      color: Colors.grey.shade300,
+                      child: const Icon(Icons.broken_image),
+                    ),
                   ),
                 ),
                 title: Text(
